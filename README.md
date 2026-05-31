@@ -1,14 +1,15 @@
-# SALInA Assistente do Aluno da Universidade de Aveiro 🎓🤖
+# SALInA Assistente do Aluno da Universidade de Aveiro
 
-O **SALInA** (Sistema de Apoio e Ligação de Informação ao Aluno) é uma solução analítica e operacional desenvolvida no âmbito da unidade curricular de **Seminário de Business Cases** do Mestrado em Ciência de Dados para Ciências Sociais da Universidade de Aveiro.
+Durante as últimas semanas, no âmbito do Mestrado em Ciência de Dados para Ciências Sociais na Universidade de Aveiro, eu desenvolvi o projeto para ajudar alunos imigrantes a encontrarem respostam que precisam no site da UA, sem precisar contratar empresas de suporte para estudar em universidades estrangeiras. 
 
-O objetivo principal é mitigar a assimetria de informação e apoiar a tomada de decisão dos estudantes (atuais e candidatos) ao longo de todo o ciclo de vida académico na UA (admissões, matrículas, propinas, bolsas, alojamento, serviços académicos e biblioteca).
+O desafio era claro: mitigar a assimetria de informação e ajudar candidatos e estudantes a navegarem pelas dúvidas mais frequentes da vida académica (matrículas, propinas, bolsas, alojamento, etc.).
 
-- Arquitetura e Metodologia (Fluxo KDD)
+Em vez de criar apenas uma análise teórica, desennhei e implementei um fluxo completo ponta-a-ponta (Pipeline KDD):
 
-O projeto foi estruturado de forma incremental e iterativa seguindo o processo KDD (Knowledge Discovery in Databases), dividido em 4 etapas fundamentais:
+Base de Conhecimento & EDA: Consolidação e auditoria de qualidade (em Python) de uma base de dados com as principais FAQs da UA.
+Automação & Backend: Criação de um pipeline dinâmico sem servidor (stateless) utilizando a plataforma n8n para orquestrar a lógica de resposta.
+ Interface (UI): Desenvolvimento de um protótipo web interativo (HTML/CSS/JS) para simular a experiência real de um utilizador.
 
-1. **Base de Conhecimento (Milestone 1):** Curadoria e mapeamento de 44 pares estruturados de perguntas, respostas detalhadas e links oficiais da UA.
-2. **Análise Exploratória e Qualidade de Dados (Milestone 2):** Auditoria de qualidade em Python, análise de distribuição de categorias e tamanho de strings para garantir a consistência das respostas.
-3. **Automação e Orquestração (Milestone 3):** Criação de um pipeline *backend* sem servidor na plataforma **n8n**, que consome dinamicamente a base de conhecimento via Google Drive e processa a lógica de correspondência de texto.
-4. **Interface do Utilizador / UI (Milestone 4):** Desenvolvimento de uma aplicação web demonstradora (*frontend* responsivo em HTML/CSS/JS) com a identidade institucional da Universidade de Aveiro.
+O sistema conta ainda com um mecanismo de contingência proativo: quando uma dúvida foge ao escopo mapeado, o assistente reencaminha de forma inteligente o utilizador para os canais de atendimento oficiais, garantindo que ninguém fica sem resposta.
+
+Olhando para o futuro, o próximo passo lógico para este projeto seria evoluir a arquitetura para um sistema RAG (Retrieval-Augmented Generation) com embeddings vetoriais e integração de LLMs para uma compreensão semântica ainda mais profunda.
