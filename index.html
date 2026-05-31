@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SALInA – Assistente do Aluno da Universidade de Aveiro</title>
+
+  <!-- ============================================================
+       ESTILOS GLOBAIS E PALETA INSTITUCIONAL
+       Cores principais:
+         --ua-teal:      #007A87  (azul-turquesa UA)
+         --ua-teal-dark: #005F6B
+         --ua-teal-light:#E0F4F6
+         --ua-gray:      #F4F6F7  (cinza claro de fundo)
+  ============================================================ -->
+  <style>
+    /* ---- Reset & base ---- */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ua-teal:       #007A87;
+      --ua-teal-dark:  #005F6B;
+      --ua-teal-light: #E0F4F6;
+      --ua-gray:       #F4F6F7;
+      --ua-white:      #FFFFFF;
+      --ua-text:       #2C3E50;
+      --ua-text-muted: #7F8C8D;
+      --ua-bubble-bot: #FFFFFF;
+      --ua-bubble-usr: #007A87;
+      --radius-bubble: 18px;
+      --shadow:        0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--ua-gray);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+      color: var(--ua-text);
+    }
+
+    /* ---- Contentor principal do chat ---- */
+    .chat-wrapper {
+      width: 100%;
+      max-width: 680px;
+      background: var(--ua-white);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- Cabeçalho ---- */
+    .chat-header {
+      background: linear-gradient(135deg, var(--ua-teal) 0%, var(--ua-teal-dark) 100%);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .chat-header .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--ua-white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .chat-header .info h1 {
+      color: var(--ua-white);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .chat-header .info p {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.78rem;
+      margin-top: 2px;
+    }
+
+    .chat-header .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #4CD964;
+      display: inline-block;
+      margin-right: 5px;
+    }
+
+    /* ---- Área de mensagens ---- */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 400px;
+      max-height: 520px;
+      background: var(--ua-gray);
+    }
+
+    /* ---- Balão genérico ---- */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      animation: fadeSlideIn 0.25s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Balão do utilizador (lado direito) */
+    .message.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message.user .bubble {
+      background: var(--ua-bubble-usr);
+      color: var(--ua-white);
+      border-radius: var(--radius-bubble) var(--radius-bubble) 4px var(--radius-bubble);
+    }
+
+    /* Balão do assistente (lado esquerdo) */
+    .message.bot {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message.bot .bubble {
+      background: var(--ua-bubble-bot);
+      color: var(--ua-text);
+      border-radius: var(--radius-bubble) var(--radius-bubble) var(--radius-bubble) 4px;
+      border: 1px solid #E3E8EA;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    /* Timestamp abaixo de cada balão */
+    .message .timestamp {
+      font-size: 0.68rem;
+      color: var(--ua-text-muted);
+      margin-top: 3px;
+      padding: 0 4px;
+    }
+
+    /* Link dentro de resposta do bot */
+    .bubble a.response-link {
+      display: inline-block;
+      margin-top: 8px;
+      background: var(--ua-teal);
+      color: var(--ua-white);
+      text-decoration: none;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .bubble a.response-link:hover {
+      background: var(--ua-teal-dark);
+    }
+
+    /* Indicador de digitação (três pontos animados) */
+    .typing-indicator .bubble {
+      padding: 12px 16px;
+    }
+
+    .typing-indicator .dots span {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ua-teal);
+      margin: 0 2px;
+      animation: bounce 1.1s infinite ease-in-out;
+    }
+
+    .typing-indicator .dots span:nth-child(2) { animation-delay: 0.18s; }
+    .typing-indicator .dots span:nth-child(3) { animation-delay: 0.36s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40%           { transform: translateY(-6px); }
+    }
+
+    /* ---- Área de input ---- */
+    .chat-input-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid #E3E8EA;
+      background: var(--ua-white);
+    }
+
+    .chat-input-area textarea {
+      flex: 1;
+      border: 1.5px solid #CBD5DA;
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-family: inherit;
+      font-size: 0.93rem;
+      resize: none;
+      outline: none;
+      line-height: 1.4;
+      max-height: 100px;
+      overflow-y: auto;
+      transition: border-color 0.2s;
+      color: var(--ua-text);
+    }
+
+    .chat-input-area textarea:focus {
+      border-color: var(--ua-teal);
+    }
+
+    .chat-input-area textarea::placeholder {
+      color: var(--ua-text-muted);
+    }
+
+    .btn-send {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: var(--ua-teal);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-send:hover  { background: var(--ua-teal-dark); }
+    .btn-send:active { transform: scale(0.93); }
+
+    .btn-send svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--ua-white);
+    }
+
+    /* ---- Rodapé / nota ---- */
+    .chat-footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--ua-text-muted);
+      padding: 8px 0 4px;
+    }
+
+    /* ---- Responsividade ---- */
+    @media (max-width: 480px) {
+      .chat-wrapper { border-radius: 12px; }
+      .message      { max-width: 90%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       ESTRUTURA DO CHAT
+  ============================================================ -->
+  <div class="chat-wrapper" role="main" aria-label="Chat SALInA">
+
+    <!-- Cabeçalho -->
+    <header class="chat-header">
+      <div class="avatar" aria-hidden="true">🎓</div>
+      <div class="info">
+        <h1>SALInA</h1>
+        <p><span class="status-dot"></span>Assistente do Aluno · Universidade de Aveiro</p>
+      </div>
+    </header>
+
+    <!-- Histórico de mensagens -->
+    <section
+      class="chat-messages"
+      id="chatMessages"
+      role="log"
+      aria-live="polite"
+      aria-label="Histórico de conversa"
+    ></section>
+
+    <!-- Campo de input + botão Enviar -->
+    <div class="chat-input-area">
+      <textarea
+        id="userInput"
+        rows="1"
+        placeholder="Escreva a sua pergunta…"
+        aria-label="Campo de pergunta"
+      ></textarea>
+      <button
+        class="btn-send"
+        id="btnSend"
+        aria-label="Enviar mensagem"
+        title="Enviar"
+      >
+        <!-- Ícone de envio (seta) -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Nota de rodapé -->
+  <p class="chat-footer">SALInA · Projeto de Mestrado — Universidade de Aveiro</p>
+
+
+  <!-- ============================================================
+       JAVASCRIPT: BASE DE CONHECIMENTO + LÓGICA DO CHAT
+  ============================================================ -->
+  <script>
+    // ------------------------------------------------------------------
+    // BASE DE CONHECIMENTO
+    // Cada objeto tem:
+    //   categoria : tema/agrupamento da pergunta
+    //   pergunta  : texto descritivo (usado internamente para referência)
+    //   palavrasChave: array de palavras que ativam esta resposta
+    //   resposta  : texto da resposta que será exibida
+    //   link      : URL opcional; se vazio ("") não é exibido
+    // ------------------------------------------------------------------
+    // Base de conhecimento completa — 44 registos extraídos do CSV assistente_aluno_ua.csv
+    const baseConhecimento = [
+      // 1 — admissão
+      {
+        categoria: "admissão",
+        pergunta: "Como me candidatar à Universidade de Aveiro?",
+        palavrasChave: ["candidatar", "candidatura", "universidade de aveiro", "dges", "licenciatura", "1.º ciclo", "candidato"],
+        resposta: "A candidatura à UA é feita através do portal nacional da DGES (www.dges.gov.pt) para o 1.º ciclo (licenciatura), usando as notas do Ensino Secundário e os exames nacionais. Para mestrados (2.º ciclo) e doutoramentos (3.º ciclo), a candidatura é feita diretamente no portal da UA (www.ua.pt/pt/candidatura). Existem também regimes especiais como Maiores de 23 anos, Titulares de Cursos Superiores e Estudantes Internacionais.",
+        link: "https://www.ua.pt/pt/candidatura"
+      },
+      // 2 — admissão
+      {
+        categoria: "admissão",
+        pergunta: "Quais são as fases de candidatura ao 1.º ciclo na UA?",
+        palavrasChave: ["fases", "candidatura", "1.º ciclo", "colocação", "vagas", "licenciatura"],
+        resposta: "O acesso ao 1.º ciclo (licenciatura) tem normalmente três fases nacionais em julho/agosto, geridas pela DGES. Em cada fase, o candidato pode indicar até seis pares instituição/curso por ordem de preferência. A colocação é feita por ordem decrescente de nota de candidatura, até esgotar as vagas de cada curso.",
+        link: "https://www.dges.gov.pt/pt/pagina/candidatura-ao-ensino-superior"
+      },
+      // 3 — admissão
+      {
+        categoria: "admissão",
+        pergunta: "Como me candidatar a um mestrado na UA?",
+        palavrasChave: ["mestrado", "candidatar", "2.º ciclo", "segundo ciclo", "motivação", "curriculum"],
+        resposta: "A candidatura a mestrado na UA é feita diretamente no portal da UA (www.ua.pt/pt/candidatura/2-ciclo). Geralmente é necessário ter uma licenciatura na área ou afim, submeter carta de motivação, curriculum vitae e cartas de recomendação. Os prazos e requisitos específicos variam por curso — consulte a página de cada mestrado.",
+        link: "https://www.ua.pt/pt/candidatura/2-ciclo"
+      },
+      // 4 — admissão
+      {
+        categoria: "admissão",
+        pergunta: "Posso candidatar-me à UA pelo regime Maiores de 23 anos?",
+        palavrasChave: ["maiores de 23", "maiores", "23 anos", "regime especial", "provas", "capacidade"],
+        resposta: "Sim. O regime Maiores de 23 anos destina-se a candidatos com 23 anos ou mais que não possuam habilitação de acesso ao ensino superior. A UA realiza provas de avaliação de capacidade (geralmente uma prova escrita e entrevista) específicas para cada curso. As inscrições para estas provas são feitas no portal da UA.",
+        link: "https://www.ua.pt/pt/candidatura/maiores-23"
+      },
+      // 5 — admissão
+      {
+        categoria: "admissão",
+        pergunta: "A UA aceita estudantes internacionais?",
+        palavrasChave: ["internacionais", "estudantes internacionais", "estrangeiro", "visto", "relações internacionais"],
+        resposta: "Sim. A UA tem um programa específico para estudantes internacionais, incluindo candidaturas fora dos contingentes nacionais. Os estudantes internacionais podem candidatar-se via portal da UA. Existe apoio dedicado pelo Gabinete de Relações Internacionais para questões de visto, alojamento e integração.",
+        link: "https://www.ua.pt/pt/estudantes-internacionais"
+      },
+      // 6 — departamentos
+      {
+        categoria: "departamentos",
+        pergunta: "Quais são os departamentos da Universidade de Aveiro?",
+        palavrasChave: ["departamentos", "departamento", "organização", "estrutura", "faculdades", "unidades"],
+        resposta: "A UA está organizada em 16 departamentos: Biologia; Ciências Sociais, Políticas e do Território; Comunicação e Arte; Economia, Gestão, Engenharia Industrial e Turismo; Educação e Psicologia; Electrónica, Telecomunicações e Informática (DETI); Engenharia Civil; Engenharia de Materiais e Cerâmica; Engenharia Mecânica; Engenharia Química; Física; Geociências; Línguas e Culturas; Matemática; Química; e Ciências Médicas. Cada departamento fica num edifício específico no campus de Santiago, em Aveiro.",
+        link: "https://www.ua.pt/pt/departamentos"
+      },
+      // 7 — departamentos
+      {
+        categoria: "departamentos",
+        pergunta: "Onde fica o curso de Engenharia Informática na UA?",
+        palavrasChave: ["engenharia informática", "deti", "informática", "telemática", "computadores", "telecomunicações", "ect"],
+        resposta: "A Licenciatura e o Mestrado em Engenharia de Computadores e Telemática (ECT) e o Mestrado em Engenharia Informática são lecionados no Departamento de Electrónica, Telecomunicações e Informática (DETI), localizado no edifício DETI no campus de Santiago, Aveiro. O DETI fica próximo do edifício do Complexo Pedagógico.",
+        link: "https://www.ua.pt/pt/deti"
+      },
+      // 8 — departamentos
+      {
+        categoria: "departamentos",
+        pergunta: "Onde fica o curso de Gestão na UA?",
+        palavrasChave: ["gestão", "degeit", "economia", "engenharia industrial", "turismo"],
+        resposta: "Os cursos de Gestão e Economia são lecionados no Departamento de Economia, Gestão, Engenharia Industrial e Turismo (DEGEIT), no campus de Santiago. O DEGEIT fica no edifício Ílhavo (edifício 3) do campus.",
+        link: "https://www.ua.pt/pt/degeit"
+      },
+      // 9 — departamentos
+      {
+        categoria: "departamentos",
+        pergunta: "Onde fica o curso de Medicina na UA?",
+        palavrasChave: ["medicina", "dcm", "ciências médicas", "médico", "hospital"],
+        resposta: "O curso de Medicina é lecionado pelo Departamento de Ciências Médicas (DCM), em parceria com o Hospital Infante D. Pedro (Centro Hospitalar do Baixo Vouga). O departamento fica no edifício das Ciências da Saúde no campus de Santiago.",
+        link: "https://www.ua.pt/pt/dcm"
+      },
+      // 10 — departamentos
+      {
+        categoria: "departamentos",
+        pergunta: "Quais são os cursos de licenciatura disponíveis na UA?",
+        palavrasChave: ["cursos", "licenciaturas", "oferta", "formação", "lista de cursos", "disponíveis"],
+        resposta: "A UA oferece mais de 40 licenciaturas, incluindo: Biologia, Bioquímica, Engenharia Civil, Engenharia de Computadores e Telemática, Engenharia Eletrónica e Telecomunicações, Engenharia Mecânica, Engenharia Química, Física, Gestão, Economia, Línguas e Relações Empresariais, Matemática, Química, Comunicação e Cultura, Turismo, Enfermagem, Medicina, Psicologia, Ciências da Educação, entre outros. Consulte www.ua.pt/pt/cursos para a lista completa.",
+        link: "https://www.ua.pt/pt/cursos"
+      },
+      // 11 — matrícula
+      {
+        categoria: "matrícula",
+        pergunta: "Como fazer a matrícula na UA após a colocação?",
+        palavrasChave: ["matrícula", "matricula", "colocação", "inscrição", "inscricao", "documentos", "prazos"],
+        resposta: "Após a colocação, a matrícula é feita online no portal académico da UA (paco.ua.pt) dentro do prazo indicado no edital de colocação (geralmente 2 a 3 dias úteis). É necessário submeter digitalizações dos documentos exigidos (CC/BI, habilitações, foto) e pagar a primeira prestação de propinas. Falhar o prazo implica perda do lugar.",
+        link: "https://www.ua.pt/pt/matricula"
+      },
+      // 12 — matrícula
+      {
+        categoria: "matrícula",
+        pergunta: "O que é o PACO?",
+        palavrasChave: ["paco", "portal académico", "portal academico", "sistema académico", "portal"],
+        resposta: "O PACO (Portal Académico Online) é o sistema de gestão académica da UA, acessível em paco.ua.pt. É através do PACO que o aluno faz matrículas, inscrições em unidades curriculares, consulta notas, pede certidões, acede ao horário e gere o seu percurso académico.",
+        link: "https://paco.ua.pt"
+      },
+      // 13 — matrícula
+      {
+        categoria: "matrícula",
+        pergunta: "Como renovar a matrícula na UA para o ano seguinte?",
+        palavrasChave: ["renovar", "renovação", "renovacao", "matrícula", "ano letivo", "setembro"],
+        resposta: "A renovação de matrícula é feita anualmente no PACO (paco.ua.pt) no início de cada ano letivo (geralmente setembro). O aluno deve confirmar a inscrição nas unidades curriculares que pretende frequentar e garantir que as propinas do ano anterior estão pagas.",
+        link: "https://paco.ua.pt"
+      },
+      // 14 — propinas
+      {
+        categoria: "propinas",
+        pergunta: "Quanto custam as propinas na UA?",
+        palavrasChave: ["propinas", "propina", "custo", "valor", "preço", "pagamento", "mensalidade"],
+        resposta: "As propinas para cursos nacionais financiados estão definidas por lei: o valor máximo anual é 697,50 € para licenciaturas e mestrados integrados (em 2024/25). O pagamento pode ser feito numa única prestação com desconto, ou em prestações mensais de outubro a julho. Cursos internacionais e não financiados têm propinas diferentes.",
+        link: "https://www.ua.pt/pt/propinas"
+      },
+      // 15 — bolsas
+      {
+        categoria: "bolsas",
+        pergunta: "Como pedir bolsa de estudo na UA?",
+        palavrasChave: ["bolsa", "bolsas", "bolsa de estudo", "pedir bolsa", "apoio financeiro", "dges bolsas"],
+        resposta: "As bolsas de estudo são atribuídas pelos Serviços de Ação Social da UA (SAS/UA). A candidatura é feita online no portal da Direção-Geral do Ensino Superior (bolsas.dges.gov.pt) entre julho e novembro. A bolsa cobre propinas e pode incluir subsídio de alojamento e alimentação, conforme a situação económica do agregado familiar.",
+        link: "https://www.ua.pt/pt/sas/bolsas"
+      },
+      // 16 — bolsas
+      {
+        categoria: "bolsas",
+        pergunta: "Que outros apoios sociais existem para alunos da UA?",
+        palavrasChave: ["apoios sociais", "apoio social", "sas", "serviços de ação social", "benefícios", "apoio"],
+        resposta: "Os SAS/UA oferecem: bolsas de estudo, alojamento em residências universitárias, refeições subsidiadas nas cantinas, apoio de saúde (consultas de medicina geral, psicologia, enfermagem), e apoio de emergência para situações imprevistas. Contacto: sas@ua.pt ou presencialmente nos SAS no campus.",
+        link: "https://www.ua.pt/pt/sas"
+      },
+      // 17 — calendário
+      {
+        categoria: "calendário",
+        pergunta: "Como é organizado o ano letivo na UA?",
+        palavrasChave: ["ano letivo", "calendário", "calendario", "semestres", "organização", "aulas", "épocas"],
+        resposta: "O ano letivo na UA divide-se em dois semestres. O 1.º semestre decorre de meados de setembro a janeiro (com época de exames em janeiro/fevereiro). O 2.º semestre decorre de fevereiro a junho (com época de exames em junho/julho). Existe ainda uma época especial de exames em setembro. O calendário exato é publicado anualmente no site da UA.",
+        link: "https://www.ua.pt/pt/calendario-academico"
+      },
+      // 18 — calendário
+      {
+        categoria: "calendário",
+        pergunta: "Quando são as épocas de exames na UA?",
+        palavrasChave: ["exames", "épocas", "epocas", "avaliação", "avaliacao", "época especial", "recurso", "época normal"],
+        resposta: "Existem três épocas de exames na UA: Época Normal (janeiro/fevereiro para o 1.º semestre; junho/julho para o 2.º semestre), Época de Recurso (fevereiro para o 1.º semestre; julho para o 2.º semestre) e Época Especial (setembro, para alunos finalistas ou com situações especiais aprovadas). As datas concretas estão no PACO e no site de cada departamento.",
+        link: "https://www.ua.pt/pt/calendario-academico"
+      },
+      // 19 — campus
+      {
+        categoria: "campus",
+        pergunta: "Onde fica o campus da Universidade de Aveiro?",
+        palavrasChave: ["campus", "localização", "localizacao", "onde fica", "santiago", "aveiro", "morada"],
+        resposta: "O campus principal da UA fica em Santiago, Aveiro, Portugal (Campus Universitário de Santiago, 3810-193 Aveiro). É um campus universitário com edifícios departamentais, biblioteca, cantinas, residências, museu e lago. Fica a cerca de 10 minutos a pé da estação de comboios de Aveiro.",
+        link: "https://www.ua.pt/pt/campus"
+      },
+      // 20 — campus
+      {
+        categoria: "campus",
+        pergunta: "Como chegar à UA de comboio ou autocarro?",
+        palavrasChave: ["comboio", "autocarro", "transportes", "chegar", "estação", "como chegar", "autocarro"],
+        resposta: "De comboio: a estação de Aveiro fica a cerca de 10-15 minutos a pé do campus. De autocarro: os STCP/Transdev têm linhas que passam junto ao campus. De carro: há parques de estacionamento no campus (alguns gratuitos, outros pagos). A UA também tem serviço de bicicletas partilhadas no campus.",
+        link: "https://www.ua.pt/pt/campus"
+      },
+      // 21 — alojamento
+      {
+        categoria: "alojamento",
+        pergunta: "Como conseguir alojamento nas residências da UA?",
+        palavrasChave: ["alojamento", "residências", "residencias", "residência", "quarto", "vaga", "residência universitária"],
+        resposta: "O alojamento nas residências universitárias da UA é gerido pelos SAS/UA. A candidatura é feita online nos SAS entre maio e julho, sendo prioritários os alunos deslocados e com menor rendimento. As residências oferecem quartos individuais e duplos com wi-fi, lavandaria e zonas comuns. Caso não haja vaga, os SAS têm uma bolsa de alojamentos privados verificados.",
+        link: "https://www.ua.pt/pt/sas/residencias"
+      },
+      // 22 — alojamento
+      {
+        categoria: "alojamento",
+        pergunta: "Qual o custo das residências universitárias da UA?",
+        palavrasChave: ["custo residências", "preço residência", "valor residência", "quanto custa residência", "mensalidade residência"],
+        resposta: "Os preços das residências dos SAS/UA variam conforme o tipo de quarto e rendimento do aluno (bolseiros têm valores reduzidos). Em 2024/25, os valores mensais rondam os 150 € a 250 € para bolseiros e 250 € a 400 € para não bolseiros. Consulte os SAS para os valores exatos do ano corrente.",
+        link: "https://www.ua.pt/pt/sas/residencias"
+      },
+      // 23 — alimentação
+      {
+        categoria: "alimentação",
+        pergunta: "Onde posso comer no campus da UA?",
+        palavrasChave: ["comer", "cantina", "refeição", "refeicao", "alimentação", "bar", "restaurante", "food"],
+        resposta: "A UA tem várias cantinas e bares geridos pelos SAS/UA. As principais são: Cantina de Santiago, Cantina do Crasto, Cantina da Universidade e vários bares departamentais. Os preços são subsidiados: refeições completas custam cerca de 2,90 € para estudantes (bolseiros podem ter valores reduzidos). Há também cafetarias privadas no campus.",
+        link: "https://www.ua.pt/pt/sas/alimentacao"
+      },
+      // 24 — biblioteca
+      {
+        categoria: "biblioteca",
+        pergunta: "Como funciona a biblioteca da UA?",
+        palavrasChave: ["biblioteca", "sbidm", "livros", "empréstimo", "estudo", "bases de dados", "impressão"],
+        resposta: "A Biblioteca da UA (SBIDM) fica no edifício central do campus e está aberta a todos os estudantes. Oferece espaços de estudo individual e em grupo, empréstimo de livros, acesso a bases de dados científicas (IEEE, Scopus, Web of Science, etc.), impressão e digitalização. O acesso é feito com o cartão de estudante. Horário: normalmente 9h-21h em dias úteis.",
+        link: "https://www.ua.pt/pt/sbidm"
+      },
+      // 25 — serviços
+      {
+        categoria: "serviços",
+        pergunta: "Como pedir certidões e declarações na UA?",
+        palavrasChave: ["certidão", "certidao", "declaração", "declaracao", "documentos", "secretaria", "frequência"],
+        resposta: "Certidões e declarações (matrícula, aproveitamento, frequência) são pedidas online através do PACO (paco.ua.pt) em 'Secretaria Virtual'. A maioria das declarações fica disponível para download em formato digital em 24-48 horas úteis. Documentos que necessitem de assinatura física devem ser pedidos presencialmente nos Serviços Académicos.",
+        link: "https://paco.ua.pt"
+      },
+      // 26 — serviços
+      {
+        categoria: "serviços",
+        pergunta: "Como obter o cartão de estudante da UA?",
+        palavrasChave: ["cartão", "cartao", "cartão de estudante", "identificação", "id", "desconto"],
+        resposta: "O cartão de estudante é emitido automaticamente após a matrícula. O cartão físico é levantado nos Serviços Académicos da UA (edifício do Reitoral). Serve como identificação no campus, acesso à biblioteca, descontos em transportes e comércio local. Em caso de perda, deve ser reportado e pedir um novo nos Serviços Académicos.",
+        link: "https://www.ua.pt/pt/cartao-estudante"
+      },
+      // 27 — serviços
+      {
+        categoria: "serviços",
+        pergunta: "Qual o horário e contacto dos Serviços Académicos da UA?",
+        palavrasChave: ["horário serviços", "contacto serviços", "serviços académicos", "telefone", "atendimento presencial"],
+        resposta: "Os Serviços Académicos da UA ficam no edifício do Reitoral, no campus de Santiago. Horário de atendimento presencial: segunda a sexta, 9h30-12h30 e 14h-16h30. Contacto: sa@ua.pt | Tel: +351 234 370 200. Muitos serviços estão disponíveis online no PACO sem necessidade de deslocação.",
+        link: "https://www.ua.pt/pt/servicos-academicos"
+      },
+      // 28 — mobilidade
+      {
+        categoria: "mobilidade",
+        pergunta: "Como participar no programa Erasmus na UA?",
+        palavrasChave: ["erasmus", "intercâmbio", "intercambio", "mobilidade", "europa", "estrangeiro", "erasmus+"],
+        resposta: "A UA tem protocolos Erasmus+ com mais de 400 universidades europeias. Para candidatar: aceda ao portal da UA > Internacional > Erasmus. A candidatura é feita normalmente em janeiro/fevereiro para o ano seguinte, através do sistema de mobilidade da UA. É necessário ter aproveitamento mínimo (geralmente 60 ECTS concluídos) e nível de língua B2 no idioma do país de destino. A UA atribui bolsa Erasmus mensal para ajuda nos custos.",
+        link: "https://www.ua.pt/pt/erasmus"
+      },
+      // 29 — mobilidade
+      {
+        categoria: "mobilidade",
+        pergunta: "A UA tem acordos de mobilidade fora da Europa?",
+        palavrasChave: ["acordos", "fora da europa", "brasil", "eua", "japão", "china", "protocolo", "gri"],
+        resposta: "Sim. Além do Erasmus europeu, a UA tem protocolos com universidades no Brasil, EUA, Canadá, Japão, China e países africanos lusófonos. Estes programas são geridos pelo Gabinete de Relações Internacionais (GRI) da UA. Contacto: internacional@ua.pt.",
+        link: "https://www.ua.pt/pt/internacional"
+      },
+      // 30 — saúde
+      {
+        categoria: "saúde",
+        pergunta: "Que serviços de saúde existem para estudantes da UA?",
+        palavrasChave: ["saúde", "saude", "médico", "medico", "consultas", "enfermagem", "nutrição", "dentista"],
+        resposta: "Os SAS/UA oferecem serviços de saúde gratuitos ou de baixo custo para estudantes: consultas de medicina geral, enfermagem, psicologia, nutrição e medicina dentária. O Serviço de Saúde fica no edifício dos SAS no campus. É necessário marcação prévia pelo e-mail saude.sas@ua.pt ou pelo telefone dos SAS.",
+        link: "https://www.ua.pt/pt/sas/saude"
+      },
+      // 31 — saúde
+      {
+        categoria: "saúde",
+        pergunta: "Como aceder ao apoio psicológico na UA?",
+        palavrasChave: ["psicológico", "psicologico", "psicologia", "apoio psicológico", "saúde mental", "ansiedade", "depressão"],
+        resposta: "A UA oferece apoio psicológico gratuito a todos os estudantes através do Serviço de Apoio Psicológico dos SAS. O atendimento é confidencial. Para marcar consulta: envie e-mail para psicologia.sas@ua.pt ou dirija-se presencialmente aos SAS. Em situações de crise, a UA tem também protocolo com linha de apoio psicológico 24h.",
+        link: "https://www.ua.pt/pt/apoio-psicologico"
+      },
+      // 32 — desporto
+      {
+        categoria: "desporto",
+        pergunta: "Que atividades desportivas existem na UA?",
+        palavrasChave: ["desporto", "ginásio", "ginasio", "piscina", "futebol", "atividades desportivas", "campeonatos", "cnu"],
+        resposta: "A UA tem a Associação Académica de Aveiro (AAUAv) que gere um vasto leque de atividades desportivas: ginásio, piscina, campos de futebol, ténis, basquete, voleibol, atletismo, desportos aquáticos, artes marciais e muito mais. A inscrição é feita na AAUAv com valores reduzidos para estudantes. A UA participa também nos Campeonatos Nacionais Universitários (CNU).",
+        link: "https://www.ua.pt/pt/desporto"
+      },
+      // 33 — vida académica
+      {
+        categoria: "vida académica",
+        pergunta: "O que é a AAUAv e como me associar?",
+        palavrasChave: ["aauav", "associação académica", "associacao academica", "associar", "estudantil", "representação"],
+        resposta: "A Associação Académica da Universidade de Aveiro (AAUAv) é a associação estudantil que representa os alunos da UA. Gere a praxe académica, o desporto universitário, atividades culturais, bares académicos e defende os interesses dos estudantes. Qualquer estudante da UA pode associar-se na sede da AAUAv no campus de Santiago.",
+        link: "https://www.aauav.pt"
+      },
+      // 34 — vida académica
+      {
+        categoria: "vida académica",
+        pergunta: "Como funciona a praxe académica na UA?",
+        palavrasChave: ["praxe", "caloiro", "veterano", "integração", "integracao", "rituais", "código de praxe"],
+        resposta: "A praxe académica na UA é organizada pela AAUAv e é voluntária. Consiste em rituais de integração dos caloiros (novos alunos) conduzidos pelos veteranos, com o objetivo de promover a camaradagem e a identidade académica. A UA tem um Código de Praxe que proíbe qualquer forma de humilhação ou coação. A participação nunca é obrigatória.",
+        link: "https://www.aauav.pt"
+      },
+      // 35 — dissertação
+      {
+        categoria: "dissertação",
+        pergunta: "Como submeter a dissertação de mestrado na UA?",
+        palavrasChave: ["dissertação", "dissertacao", "submeter", "defesa", "ria", "repositório", "repositorio", "júri"],
+        resposta: "A dissertação de mestrado deve ser submetida no RIA (Repositório Institucional da UA) em formato PDF, após aprovação pelo orientador e pelo júri. O processo é: (1) submeter o pedido de provas no PACO; (2) aguardar a marcação do júri pelos Serviços Académicos; (3) realizar a defesa pública; (4) após aprovação, submeter a versão final no RIA (ria.ua.pt) dentro de 30 dias. O Departamento emite depois a certidão de conclusão.",
+        link: "https://www.ua.pt/pt/dissertacao"
+      },
+      // 36 — dissertação
+      {
+        categoria: "dissertação",
+        pergunta: "Qual o prazo para concluir o mestrado na UA?",
+        palavrasChave: ["prazo", "duração", "duracao", "concluir mestrado", "tempo mestrado", "anos mestrado", "prorrogação"],
+        resposta: "Os mestrados na UA têm geralmente duração de 2 anos (4 semestres). O Regulamento de Estudos Pós-Graduados permite que o aluno fique inscrito até 4 anos. Passado esse prazo, pode pedir prorrogação justificada aos Serviços Académicos. Recomenda-se contactar o orientador logo no início para definir o cronograma da dissertação.",
+        link: "https://www.ua.pt/pt/regulamento-estudos"
+      },
+      // 37 — conclusão
+      {
+        categoria: "conclusão",
+        pergunta: "Como pedir o diploma na UA?",
+        palavrasChave: ["diploma", "certidão de conclusão", "pedir diploma", "concluir", "certificado", "acabar curso"],
+        resposta: "Após concluir todas as unidades curriculares e defender a dissertação/projeto (se aplicável), o diploma é emitido automaticamente pelos Serviços Académicos. Para acelerar o processo, pode pedir formalmente nos Serviços Académicos ou via PACO. O Suplemento ao Diploma (documento europeu que descreve o percurso académico) é emitido gratuitamente junto com o diploma.",
+        link: "https://www.ua.pt/pt/diploma"
+      },
+      // 38 — conclusão
+      {
+        categoria: "conclusão",
+        pergunta: "O que é o Suplemento ao Diploma da UA?",
+        palavrasChave: ["suplemento ao diploma", "suplemento", "diploma europeu", "reconhecimento", "classificação"],
+        resposta: "O Suplemento ao Diploma é um documento europeu emitido em português e inglês que descreve detalhadamente o percurso académico do estudante: curso, departamento, unidades curriculares, notas, sistema de classificação e perfil profissional. É emitido gratuitamente pela UA junto com o diploma e é muito valorizado por empregadores europeus e para reconhecimento de graus no estrangeiro.",
+        link: "https://www.ua.pt/pt/diploma"
+      },
+      // 39 — regulamentos
+      {
+        categoria: "regulamentos",
+        pergunta: "Onde encontro o regulamento académico da UA?",
+        palavrasChave: ["regulamento", "regras", "normas", "académico", "academico", "diário da república"],
+        resposta: "O Regulamento de Estudos da UA está disponível no Diário da República e no site da UA em www.ua.pt/pt/regulamento-estudos. Define as regras sobre inscrições, avaliação, transição de ano, prescrição, equivalências, regime de trabalhador-estudante e outros aspetos do percurso académico. Em caso de dúvida, os Serviços Académicos podem esclarecer.",
+        link: "https://www.ua.pt/pt/regulamento-estudos"
+      },
+      // 40 — regulamentos
+      {
+        categoria: "regulamentos",
+        pergunta: "O que acontece se reprovar muitas vezes na UA? (prescrição)",
+        palavrasChave: ["reprovar", "prescrição", "prescricao", "reprovação", "perder estatuto", "chumbos", "anulação"],
+        resposta: "O regime de prescrição na UA determina que um estudante pode perder o estatuto de estudante se não cumprir requisitos mínimos de aproveitamento. As regras variam por ciclo de estudos, mas em geral: no 1.º ciclo, o aluno não pode estar inscrito mais de n+2 anos (onde n é a duração normal do curso). Verifique o Regulamento de Estudos ou contacte os Serviços Académicos para o seu caso específico.",
+        link: "https://www.ua.pt/pt/regulamento-estudos"
+      },
+      // 41 — geral
+      {
+        categoria: "geral",
+        pergunta: "O que é a Universidade de Aveiro?",
+        palavrasChave: ["o que é a ua", "o que é a universidade", "história", "historia", "fundação", "fundacao", "sobre a ua", "ua"],
+        resposta: "A Universidade de Aveiro (UA) é uma universidade pública portuguesa fundada em 1973, localizada em Aveiro. É conhecida pela sua arquitetura moderna e inovadora no campus de Santiago. Tem cerca de 15.000 estudantes, 16 departamentos e vários institutos de investigação. É consistentemente classificada entre as melhores universidades portuguesas, com forte ligação à indústria e à investigação científica.",
+        link: "https://www.ua.pt"
+      },
+      // 42 — geral
+      {
+        categoria: "geral",
+        pergunta: "Qual o e-mail e contacto geral da Universidade de Aveiro?",
+        palavrasChave: ["contacto", "telefone", "email", "morada", "endereço", "endereco", "contactos gerais"],
+        resposta: "Contactos gerais da UA: Site: www.ua.pt | Tel: +351 234 370 200 | Morada: Universidade de Aveiro, Campus Universitário de Santiago, 3810-193 Aveiro, Portugal. Serviços Académicos: sa@ua.pt | SAS: sas@ua.pt | Internacional: internacional@ua.pt",
+        link: "https://www.ua.pt/pt/contactos"
+      },
+      // 43 — geral
+      {
+        categoria: "geral",
+        pergunta: "Como aceder ao e-mail institucional da UA?",
+        palavrasChave: ["email institucional", "webmail", "correio", "conta ua", "email ua", "nmec"],
+        resposta: "Todos os estudantes da UA têm um e-mail institucional no formato nmec@ua.pt (número mecanográfico). O acesso é feito em webmail.ua.pt usando as credenciais do PACO. Este e-mail é o canal oficial de comunicação com a UA e deve ser verificado regularmente, pois é usado para informações sobre matrículas, resultados e avisos importantes.",
+        link: "https://webmail.ua.pt"
+      },
+      // 44 — geral
+      {
+        categoria: "geral",
+        pergunta: "O que é o eLearning da UA?",
+        palavrasChave: ["elearning", "e-learning", "moodle", "plataforma", "materiais", "aulas online", "unidade curricular"],
+        resposta: "O eLearning da UA (elearning.ua.pt) é a plataforma Moodle da universidade onde os professores disponibilizam materiais de apoio, fichas de trabalho, testes e onde ocorrem fóruns de discussão. O acesso é feito com as credenciais do PACO. Cada unidade curricular tem uma página no eLearning.",
+        link: "https://elearning.ua.pt"
+      }
+    ];
+
+    // ------------------------------------------------------------------
+    // UTILITÁRIOS
+    // ------------------------------------------------------------------
+
+    /**
+     * Normaliza texto: converte para minúsculas e remove acentos.
+     * Usado para comparação insensível a maiúsculas/acentos.
+     * @param {string} texto
+     * @returns {string}
+     */
+    function normalizar(texto) {
+      return texto
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // remove diacríticos
+    }
+
+    /**
+     * Retorna a hora atual formatada em HH:MM.
+     * @returns {string}
+     */
+    function horaAtual() {
+      return new Date().toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    // ------------------------------------------------------------------
+    // RENDERIZAÇÃO DE MENSAGENS
+    // ------------------------------------------------------------------
+
+    /**
+     * Adiciona um balão de mensagem ao histórico do chat.
+     * @param {string} texto   - Conteúdo HTML ou texto da mensagem
+     * @param {"user"|"bot"} tipo - Autor da mensagem
+     */
+    function adicionarMensagem(texto, tipo) {
+      const chatMessages = document.getElementById("chatMessages");
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("message", tipo);
+
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+      bubble.innerHTML = texto; // permite HTML seguro (links formatados)
+
+      const ts = document.createElement("span");
+      ts.classList.add("timestamp");
+      ts.textContent = horaAtual();
+
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(ts);
+      chatMessages.appendChild(wrapper);
+
+      // Faz scroll automático até à última mensagem
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    /**
+     * Mostra o indicador de digitação animado (três pontos).
+     * @returns {HTMLElement} referência ao elemento, para removê-lo depois
+     */
+    function mostrarIndicadorDigitacao() {
+      const chatMessages = document.getElementById("chatMessages");
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("message", "bot", "typing-indicator");
+
+      wrapper.innerHTML = `
+        <div class="bubble">
+          <div class="dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>`;
+
+      chatMessages.appendChild(wrapper);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return wrapper;
+    }
+
+    // ------------------------------------------------------------------
+    // MOTOR DE BUSCA
+    // ------------------------------------------------------------------
+
+    /**
+     * Procura na base de conhecimento a entrada cuja lista de
+     * palavrasChave melhor corresponde à pergunta do utilizador.
+     * Devolve o objeto encontrado ou null se não houver correspondência.
+     * @param {string} pergunta - Texto digitado pelo utilizador
+     * @returns {object|null}
+     */
+    function buscarResposta(pergunta) {
+      const perguntaNorm = normalizar(pergunta);
+
+      let melhorResultado = null;
+      let melhorPontuacao = 0;
+
+      for (const entrada of baseConhecimento) {
+        let pontuacao = 0;
+
+        for (const palavra of entrada.palavrasChave) {
+          if (perguntaNorm.includes(normalizar(palavra))) {
+            pontuacao++;
+          }
+        }
+
+        // Escolhe a entrada com mais palavras-chave correspondentes
+        if (pontuacao > melhorPontuacao) {
+          melhorPontuacao = pontuacao;
+          melhorResultado = entrada;
+        }
+      }
+
+      // Requer pelo menos 1 correspondência para considerar válida
+      return melhorPontuacao >= 1 ? melhorResultado : null;
+    }
+
+    // ------------------------------------------------------------------
+    // LÓGICA PRINCIPAL DO ENVIO
+    // ------------------------------------------------------------------
+
+    /**
+     * Processa a pergunta do utilizador:
+     * 1. Exibe o balão do utilizador
+     * 2. Mostra indicador de digitação (simula latência)
+     * 3. Exibe a resposta encontrada (ou mensagem de fallback)
+     */
+    function processarPergunta() {
+      const input = document.getElementById("userInput");
+      const texto = input.value.trim();
+
+      // Ignora envios vazios
+      if (!texto) return;
+
+      // 1. Exibe mensagem do utilizador
+      adicionarMensagem(escapeHTML(texto), "user");
+      input.value = "";
+      input.style.height = "auto"; // reset da altura do textarea
+
+      // 2. Indicador de digitação (300 ms de simulação)
+      const indicador = mostrarIndicadorDigitacao();
+
+      setTimeout(() => {
+        // Remove o indicador
+        indicador.remove();
+
+        // 3. Busca e exibe resposta
+        const resultado = buscarResposta(texto);
+
+        if (resultado) {
+          // Monta HTML da resposta com link opcional
+          let htmlResposta = escapeHTML(resultado.resposta);
+
+          if (resultado.link && resultado.link.trim() !== "") {
+            htmlResposta += `<br><a
+              class="response-link"
+              href="${escapeAttr(resultado.link)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Saber mais →</a>`;
+          }
+
+          adicionarMensagem(htmlResposta, "bot");
+        } else {
+          // Mensagem de fallback educada
+          adicionarMensagem(
+            "Peço desculpa, não encontrei uma resposta para a sua questão na minha base de dados. " +
+            "Para obter ajuda personalizada, contacte os Serviços Académicos da UA ou consulte o portal " +
+            "<a class=\"response-link\" href=\"https://www.ua.pt\" target=\"_blank\" rel=\"noopener noreferrer\">ua.pt →</a>",
+            "bot"
+          );
+        }
+      }, 700); // atraso em milissegundos (ajustável)
+    }
+
+    // ------------------------------------------------------------------
+    // SEGURANÇA: escape de HTML e atributos
+    // Evita XSS ao renderizar o texto digitado pelo utilizador.
+    // ------------------------------------------------------------------
+
+    /**
+     * Escapa caracteres especiais de HTML num texto simples.
+     * @param {string} str
+     * @returns {string}
+     */
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    /**
+     * Escapa uma URL para uso seguro em atributos HTML.
+     * Só permite https:// e http:// para prevenir javascript: URIs.
+     * @param {string} url
+     * @returns {string}
+     */
+    function escapeAttr(url) {
+      const sanitized = String(url).trim();
+      if (!/^https?:\/\//i.test(sanitized)) return "#";
+      return sanitized.replace(/"/g, "%22");
+    }
+
+    // ------------------------------------------------------------------
+    // EVENTOS DA INTERFACE
+    // ------------------------------------------------------------------
+
+    // Clique no botão Enviar
+    document.getElementById("btnSend").addEventListener("click", processarPergunta);
+
+    // Pressionar Enter envia; Shift+Enter cria nova linha
+    document.getElementById("userInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        processarPergunta();
+      }
+    });
+
+    // Auto-expansão do textarea conforme o utilizador digita
+    document.getElementById("userInput").addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = Math.min(this.scrollHeight, 100) + "px";
+    });
+
+    // ------------------------------------------------------------------
+    // MENSAGEM DE BOAS-VINDAS (exibida ao carregar a página)
+    // ------------------------------------------------------------------
+    (function init() {
+      adicionarMensagem(
+        "Olá! 👋 Sou o <strong>SALInA</strong>, o Assistente do Aluno da Universidade de Aveiro. " +
+        "Como posso ajudá-lo hoje? Pode perguntar sobre <em>matrículas, bolsas, horários</em> e muito mais.",
+        "bot"
+      );
+    })();
+  </script>
+
+</body>
+</html>

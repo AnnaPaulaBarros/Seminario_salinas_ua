@@ -1,0 +1,154 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salinas",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0a903c84-8459-427e-adea-dd4884571dc9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        304
+      ],
+      "webhookId": "85b0468f-0dfc-45d5-b6e8-fa8a77167142"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"answer\": $json.answer, \"link\": $json.link } }}",
+        "options": {}
+      },
+      "id": "809dc765-da5d-4fb8-9c19-1deecf011308",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        640,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "id": "32c6581a-611f-4914-b346-9aa0a66f4f23",
+      "name": "Parse CSV",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "https://drive.google.com/file/d/1ibPYoKxn3aNrU7WYjECDXongoPg6taFU/view?usp=drive_link",
+          "mode": "url"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {}
+          }
+        }
+      },
+      "id": "23f9cd0d-8b37-4d22-be4a-8969f4c1c92a",
+      "name": "Download CSV",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -32,
+        304
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "9JOYPjUz9AvkJ685",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Captura a pergunta enviada pelo Webhook (ajustado para ser mais flexível)\nconst inputData = $(\"Webhook\").first().json;\nconst question = (inputData.body && inputData.body.question) \n  ? inputData.body.question.toLowerCase() \n  : \"\";\n\n// Pega todos os dados que vieram do nó Parse CSV\nconst csvData = $(\"Parse CSV\").all();\n\nlet answer = \"Desculpe, não encontrei informação sobre isso no momento.\";\nlet link = \"\";\n\n// Percorre as linhas do CSV para encontrar a resposta\nfor (const row of csvData) {\n  // Ajuste: verificando se a coluna no seu CSV se chama 'pergunta' ou 'question'\n  const perguntaCSV = row.json.pergunta || row.json.question;\n  \n  if (perguntaCSV && perguntaCSV.toLowerCase().includes(question)) {\n    answer = row.json.resposta || row.json.answer;\n    link = row.json.link || \"\";\n    break;\n  }\n}\n\nreturn { answer, link };"
+      },
+      "id": "39f05bfd-f3c9-4d04-bfd0-dec8ea0696fb",
+      "name": "Find Answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Download CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV": {
+      "main": [
+        [
+          {
+            "node": "Find Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download CSV": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Answer": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ba367598-f996-4436-af34-a64f6e43dcf3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b38fd607a94a321ba4a89a9e762e958dd6fe8989e4a7148d4271e9e554c3c320"
+  },
+  "id": "PvGkT6nUIdbcYYo6",
+  "tags": []
+}
